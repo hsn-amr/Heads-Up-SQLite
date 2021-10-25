@@ -157,26 +157,30 @@ class StartGame : AppCompatActivity() {
             gameData.isVisible = false
         }
         if(orientation == Configuration.ORIENTATION_LANDSCAPE){
-            while (true){
-                index = Random.nextInt(celebrities.size)
-                if(!usedList.contains(index) || usedList.size == celebrities.size){
-                    break
+             if(celebrities.size > 0){
+                while (true){
+                    index = Random.nextInt(celebrities.size)
+                    if(!usedList.contains(index) || usedList.size == celebrities.size){
+                        break
+                    }
                 }
-            }
-            if(doesStart){
-                headsUpText.isVisible = false
-                val c = celebrities[index]
-                name.text = c.name
-                taboo1.text = c.taboo1
-                taboo2.text = c.taboo2
-                taboo3.text = c.taboo3
-                gameData.isVisible = true
+                if(doesStart){
+                    headsUpText.isVisible = false
+                    val c = celebrities[index]
+                    name.text = c.name
+                    taboo1.text = c.taboo1
+                    taboo2.text = c.taboo2
+                    taboo3.text = c.taboo3
+                    gameData.isVisible = true
 
-                if(usedList.size >= celebrities.size){
-                    usedList.clear()
-                }else{
-                    usedList.add(index)
+                    if(usedList.size >= celebrities.size){
+                        usedList.clear()
+                    }else{
+                        usedList.add(index)
+                    }
                 }
+            }else{
+                Toast.makeText(this,"Please Add Celebrities First",Toast.LENGTH_LONG).show()
             }
         }
     }
