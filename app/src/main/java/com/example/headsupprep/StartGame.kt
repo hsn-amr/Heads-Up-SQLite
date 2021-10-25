@@ -22,6 +22,8 @@ import kotlin.random.Random
 
 class StartGame : AppCompatActivity() {
 
+    private val celebrityDBHelper by lazy { CelebrityDBHelper(applicationContext) }
+
     lateinit var gameData: LinearLayout
     lateinit var name: TextView
     lateinit var taboo1: TextView
@@ -30,7 +32,8 @@ class StartGame : AppCompatActivity() {
     lateinit var time: TextView
     lateinit var headsUpText: TextView
     lateinit var hintText: TextView
-    lateinit var startButton: Button
+    lateinit var startGameAPI: Button
+    lateinit var startGameLocally: Button
     lateinit var addNewCelebrityButton: Button
 
     val text = "Please Rotate Device"
@@ -38,6 +41,7 @@ class StartGame : AppCompatActivity() {
     var index = 0
     var usedList = arrayListOf<Int>()
     var doesStart = false
+    var gameMode = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,6 +50,8 @@ class StartGame : AppCompatActivity() {
         this.supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
         supportActionBar!!.setDisplayShowCustomEnabled(true)
         supportActionBar!!.setCustomView(R.layout.custom_actionbar)
+
+
 
         gameData = findViewById(R.id.llGameData)
         name = findViewById(R.id.gameTvName)
@@ -57,14 +63,28 @@ class StartGame : AppCompatActivity() {
         time = findViewById(R.id.tvTime)
         headsUpText = findViewById(R.id.tvHeadsUp)
         hintText = findViewById(R.id.tvHint)
-        startButton = findViewById(R.id.btnStartGame)
+        startGameAPI = findViewById(R.id.btnStartGameAPI)
+        startGameLocally = findViewById(R.id.btnStartGameLocally)
         addNewCelebrityButton = findViewById(R.id.btnAddNewCelebrityLocally)
 
-        startButton.setOnClickListener {
+        startGameAPI.setOnClickListener {
+            gameMode = "api"
             getCelebrities()
             startTimer()
             headsUpText.text = text
-            startButton.isVisible = false
+            startGameAPI.isVisible = false
+            startGameLocally.isVisible = false
+            addNewCelebrityButton.isVisible = false
+            hintText.isVisible = false
+        }
+
+        startGameLocally.setOnClickListener {
+            gameMode = "locally"
+            getCelebrities()
+            startTimer()
+            headsUpText.text = text
+            startGameAPI.isVisible = false
+            startGameLocally.isVisible = false
             addNewCelebrityButton.isVisible = false
             hintText.isVisible = false
         }
@@ -73,33 +93,39 @@ class StartGame : AppCompatActivity() {
     }
 
 
-    fun getCelebrities(){
+    private fun getCelebrities(){
         if(celebrities.isNotEmpty()){
             celebrities.clear()
         }
-        val apiInterface = APIClient().getClient()?.create(APIInterface::class.java)
-        val call: Call<List<Celebrity>> = apiInterface!!.getCelebrities()
+        if(gameMode == "api"){
+            val apiInterface = APIClient().getClient()?.create(APIInterface::class.java)
+            val call: Call<List<Celebrity>> = apiInterface!!.getCelebrities()
 
-        call?.enqueue(object : Callback<List<Celebrity>> {
-            override fun onResponse(
-                call: Call<List<Celebrity>>,
-                response: Response<List<Celebrity>>
-            ) {
-                val response: List<Celebrity>? =response.body()
-                for (celebrity in response!!){
-                    celebrities.add(celebrity)
+            call?.enqueue(object : Callback<List<Celebrity>> {
+                override fun onResponse(
+                    call: Call<List<Celebrity>>,
+                    response: Response<List<Celebrity>>
+                ) {
+                    val response: List<Celebrity>? =response.body()
+                    for (celebrity in response!!){
+                        celebrities.add(celebrity)
+                    }
+                    gameMode = ""
                 }
-            }
 
-            override fun onFailure(call: Call<List<Celebrity>>, t: Throwable) {
-                Log.d("TAG", "${t}")
-                Toast.makeText(this@StartGame, "Something went wrong", Toast.LENGTH_LONG).show()
-            }
+                override fun onFailure(call: Call<List<Celebrity>>, t: Throwable) {
+                    Log.d("TAG", "${t}")
+                    Toast.makeText(this@StartGame, "Something went wrong", Toast.LENGTH_LONG).show()
+                }
 
-        })
+            })
+        }else if (gameMode == "locally"){
+            celebrities = celebrityDBHelper.retrieveAllCelebrities()
+            gameMode = ""
+        }
     }
 
-    fun startTimer(){
+    private fun startTimer(){
         object : CountDownTimer(60000, 1000) {
 
             override fun onTick(millisUntilFinished: Long) {
@@ -109,7 +135,8 @@ class StartGame : AppCompatActivity() {
 
             override fun onFinish() {
                 time.text = "Time: done!"
-                startButton.isVisible = true
+                startGameAPI.isVisible = true
+                startGameLocally.isVisible = true
                 addNewCelebrityButton.isVisible = true
                 headsUpText.isVisible = true
                 hintText.isVisible = true
@@ -132,7 +159,7 @@ class StartGame : AppCompatActivity() {
         if(orientation == Configuration.ORIENTATION_LANDSCAPE){
             while (true){
                 index = Random.nextInt(celebrities.size)
-                if(!usedList.contains(index)){
+                if(!usedList.contains(index) || usedList.size == celebrities.size){
                     break
                 }
             }
@@ -144,7 +171,12 @@ class StartGame : AppCompatActivity() {
                 taboo2.text = c.taboo2
                 taboo3.text = c.taboo3
                 gameData.isVisible = true
-                usedList.add(index)
+
+                if(usedList.size >= celebrities.size){
+                    usedList.clear()
+                }else{
+                    usedList.add(index)
+                }
             }
         }
     }
